@@ -1,3 +1,10 @@
+[kube:children]
+masters
+slaves
+
+[kube:vars]
+ssh_key=
+
 [masters]
 master ansible_host= ansible_user= ansible_become=
 
