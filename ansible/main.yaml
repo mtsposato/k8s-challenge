@@ -1,0 +1,158 @@
+- hosts: 'kube'
+  gather_facts: yes
+  tasks:
+    # https://buildvirtual.net/deploy-a-kubernetes-cluster-using-ansible/
+    - name: create the kube user account
+      user: name=kube append=yes state=present groups=sudo createhome=yes shell=/bin/bash
+
+    - name: allow 'kube' to use sudo without needing a password
+      lineinfile:
+        dest: /etc/sudoers
+        line: 'kube ALL=(ALL) NOPASSWD: ALL'
+        validate: 'visudo -cf %s'
+    
+    - name: Create containerd config file
+      file:
+        path: "/etc/modules-load.d/containerd.conf"
+        state: "touch"
+
+    - name: Add conf for containerd
+      blockinfile:
+        path: "/etc/modules-load.d/containerd.conf"
+        block: |
+               overlay
+               br_netfilter
+
+    - name: Add the overlay module
+      community.general.modprobe:
+        name: overlay
+        state: present
+        persistent: "present"
+
+    - name: Add the overlay module
+      community.general.modprobe:
+        name: br_netfilter
+        state: present
+        persistent: "present"
+    
+    - name: Set system configurations for Kubernetes networking
+      file:
+        path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+        state: "touch"
+
+    - name: Add conf for containerd
+      blockinfile:
+        path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+        block: |
+                net.bridge.bridge-nf-call-iptables = 1
+                net.ipv4.ip_forward = 1
+                net.bridge.bridge-nf-call-ip6tables = 1
+
+      #- ansible.posix.sysctl:
+    - name: Apply new settings
+      command: sysctl --system
+
+    - name: install containerd and utilities
+      ansible.builtin.package:
+        name:
+          - containerd
+          - apt-transport-https
+          - curl
+        state: present
+
+    - name: create /etc/containerd
+      ansible.builtin.file:
+        path: /etc/containerd
+        state: directory
+
+    - name: Configure containerd
+      command: containerd config default | tee /etc/containerd/config.toml
+    
+    - name: Configure containerd systemd
+      ansible.builtin.systemd:
+        state: restarted
+        enabled: true
+        name: containerd
+
+    - name: disable swap
+      shell: |
+              swapoff -a
+              sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+    - name: add google key
+      shell: curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+    
+    - name: Create kubernetes repo file
+      file:
+        path: "/etc/apt/sources.list.d/kubernetes.list"
+        state: "touch"
+
+    - name: Add K8s Source
+      blockinfile:
+        path: "/etc/apt/sources.list.d/kubernetes.list"
+        block: |
+              deb https://apt.kubernetes.io/ kubernetes-xenial main
+    - name: Update repos
+      command: apt update
+    - name: install kube packages
+      ansible.builtin.package:
+        name:
+          - kubelet=1.20.1-00
+          - kubeadm=1.20.1-00
+          - kubectl=1.20.1-00
+        state: present
+
+- hosts: masters
+  gather_facts: yes
+  tasks:
+    - name: initialize the cluster
+      shell: kubeadm init --pod-network-cidr=10.244.0.0/16
+      args:
+        chdir: $HOME
+        creates: cluster_initialized.txt
+
+    - name: create .kube directory
+      become_user: kube
+      file:
+        path: $HOME/.kube
+        state: directory
+        mode: 0755
+
+    - name: copies admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/kube/.kube/config
+        remote_src: yes
+        owner: kube
+
+    - name: install Container Network Interface
+      become_user: kube
+      shell: kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml 
+      args:
+        chdir: $HOME
+        creates: cni_initialized.txt
+    
+    - name: Get the token for joining the worker nodes
+      become_user: kube
+      shell: sudo kubeadm token create  --print-join-command
+      register: kubernetes_join_command
+
+    - name: Copy join command to local file.
+      local_action: copy content="{{ kubernetes_join_command.stdout_lines[0] }}" dest="/tmp/kubernetes_join_command"
+    
+- hosts: workers
+  gather_facts: yes
+
+  tasks:
+   - name: Copy join command from Ansiblehost to the worker nodes.
+     become: yes
+     copy:
+       src: /tmp/kubernetes_join_command
+       dest: /tmp/kubernetes_join_command
+       mode: 0777
+
+   - name: Join the Worker nodes to the cluster.
+     become: yes
+     command: sh /tmp/kubernetes_join_command
+     register: joined_or_not
+    
