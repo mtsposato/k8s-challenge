@@ -1,0 +1,9 @@
+project          = ""
+credentials_file = ""
+ip_range         = ""
+region           = ""
+zone             = ""
+ssh_key          = ""
+machine_type     = ""
+ssh_user         = ""
+
