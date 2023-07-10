@@ -23,26 +23,13 @@ resource "google_compute_firewall" "rules" {
   target_tags   = ["allow-ssh-http"]
 }
 
-resource "google_compute_firewall" "management-rules" {
-  name = "allow-k8s-api"
-  allow {
-    ports    = ["6443"]
-    protocol = "tcp"
-  }
-  direction     = "INGRESS"
-  network       = google_compute_network.network.id
-  priority      = 1000
-  source_ranges = [var.ip_range]
-  target_tags   = ["allow-k8s-api"]
-}
-
 resource "google_compute_instance" "master" {
   name           = "master"
   machine_type   = var.machine_type
   desired_status = "RUNNING"
   zone           = var.zone
 
-  tags = ["allow-ssh-http", "allow-k8s-api", "default-allow-internal"]
+  tags = ["allow-ssh-http", "default-allow-internal"]
 
   boot_disk {
     initialize_params {
