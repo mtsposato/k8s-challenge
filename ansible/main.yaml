@@ -1,77 +1,80 @@
 - hosts: 'kube'
-  gather_facts: yes
+  name: Prepare vm for kubernetes installation
   tasks:
     # https://buildvirtual.net/deploy-a-kubernetes-cluster-using-ansible/
 
-    - name: create the kube user account
-      user: name=kube append=yes state=present groups=sudo createhome=yes shell=/bin/bash
+    - name: Create the kube user account
+      ansible.builtin.user: name=kube append=yes state=present groups=sudo createhome=yes shell=/bin/bash
       tags:
-      - prepare
+        - prepare
+        - skip_ansible_lint
 
-    - name: allow 'kube' to use sudo without needing a password
-      lineinfile:
+    - name: Allow 'kube' to use sudo without needing a password
+      ansible.builtin.lineinfile:
         dest: /etc/sudoers
         line: 'kube ALL=(ALL) NOPASSWD: ALL'
         validate: 'visudo -cf %s'
       tags:
-      - prepare
-    
+        - prepare
+
     - name: Create containerd config file
-      file:
-        path: "/etc/modules-load.d/containerd.conf"
-        state: "touch"
+      ansible.builtin.file:
+        path: '/etc/modules-load.d/containerd.conf'
+        state: 'touch'
+        mode: '0755'
       tags:
-      - prepare
+        - prepare
 
     - name: Add conf for containerd
-      blockinfile:
-        path: "/etc/modules-load.d/containerd.conf"
+      ansible.builtin.blockinfile:
+        path: '/etc/modules-load.d/containerd.conf'
         block: |
-               overlay
-               br_netfilter
+          overlay
+          br_netfilter
       tags:
-      - prepare
+        - prepare
 
     - name: Add the overlay module
       community.general.modprobe:
         name: overlay
         state: present
-        persistent: "present"
+        persistent: 'present'
       tags:
-      - prepare
+        - prepare
 
     - name: Add the overlay module
       community.general.modprobe:
         name: br_netfilter
         state: present
-        persistent: "present"
+        persistent: 'present'
       tags:
-      - prepare
-    
+        - prepare
+
     - name: Set system configurations for Kubernetes networking
-      file:
-        path: "/etc/sysctl.d/99-kubernetes-cri.conf"
-        state: "touch"
+      ansible.builtin.file:
+        path: '/etc/sysctl.d/99-kubernetes-cri.conf'
+        state: 'touch'
+        mode: '0755'
       tags:
-      - prepare
+        - prepare
 
     - name: Add conf for containerd
-      blockinfile:
-        path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+      ansible.builtin.blockinfile:
+        path: '/etc/sysctl.d/99-kubernetes-cri.conf'
         block: |
-                net.bridge.bridge-nf-call-iptables = 1
-                net.ipv4.ip_forward = 1
-                net.bridge.bridge-nf-call-ip6tables = 1
+          net.bridge.bridge-nf-call-iptables = 1
+          net.ipv4.ip_forward = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
       tags:
-      - prepare
+        - prepare
 
-      #- ansible.posix.sysctl:
     - name: Apply new settings
-      command: sysctl --system
+      ansible.builtin.command: sysctl --system
       tags:
-      - prepare
+        - prepare
+        - skip_ansible_lint
 
-    - name: install containerd and utilities
+    - name: Install containerd and utilities
       ansible.builtin.package:
         name:
           - containerd
@@ -80,76 +83,82 @@
           - wget
         state: present
       tags:
-      - prepare
+        - prepare
     # we need to reinstall containerd: https://serverfault.com/questions/1118051/failed-to-run-kubelet-validate-service-connection-cri-v1-runtime-api-is-not-im
-    - name: workaround to install the correct version of containerd
-      shell: |
-            wget https://github.com/containerd/containerd/releases/download/v1.6.12/containerd-1.6.12-linux-amd64.tar.gz
-            tar xvf containerd-1.6.12-linux-amd64.tar.gz
-            systemctl stop containerd
-            cd bin
-            cp * /usr/bin/
-            rm -rf $HOME/bin
+    - name: Workaround to install the correct version of containerd
+      ansible.builtin.shell: |
+        wget https://github.com/containerd/containerd/releases/download/v1.6.12/containerd-1.6.12-linux-amd64.tar.gz
+        tar xvf containerd-1.6.12-linux-amd64.tar.gz
+        systemctl stop containerd
+        cd bin
+        cp * /usr/bin/
+        rm -rf $HOME/bin
       args:
         chdir: $HOME
         creates: containerd_installed.txt
       tags:
-      - prepare
+        - prepare
+        - skip_ansible_lint
 
-
-    - name: create /etc/containerd
+    - name: Create /etc/containerd
       ansible.builtin.file:
         path: /etc/containerd
         state: directory
+        mode: '0755'
       tags:
-      - prepare
+        - prepare
 
     - name: Configure containerd
-      command: containerd config default | tee /etc/containerd/config.toml
+      ansible.builtin.command: containerd config default | tee /etc/containerd/config.toml
       tags:
-      - prepare
-    
+        - prepare
+        - skip_ansible_lint
+
     - name: Configure containerd systemd
       ansible.builtin.systemd:
         state: restarted
         enabled: true
         name: containerd
       tags:
-      - prepare
+        - prepare
 
-    - name: disable swap
-      shell: |
-              swapoff -a
-              sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+    - name: Disable swap
+      ansible.builtin.shell: |
+        swapoff -a
+        sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
       tags:
-      - prepare
+        - prepare
+        - skip_ansible_lint
 
-    - name: add google key
-      shell: curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+    - name: Add google key
+      ansible.builtin.shell: curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
       tags:
-      - prepare
-    
+        - prepare
+        - skip_ansible_lint
+
     - name: Create kubernetes repo file
-      file:
-        path: "/etc/apt/sources.list.d/kubernetes.list"
-        state: "touch"
+      ansible.builtin.file:
+        path: '/etc/apt/sources.list.d/kubernetes.list'
+        state: 'touch'
+        mode: '0755'
       tags:
-      - prepare
+        - prepare
 
     - name: Add K8s Source
-      blockinfile:
-        path: "/etc/apt/sources.list.d/kubernetes.list"
+      ansible.builtin.blockinfile:
+        path: '/etc/apt/sources.list.d/kubernetes.list'
         block: |
-              deb https://apt.kubernetes.io/ kubernetes-xenial main
+          deb https://apt.kubernetes.io/ kubernetes-xenial main
       tags:
-      - prepare
+        - prepare
 
     - name: Update repos
-      command: apt update
+      ansible.builtin.command: apt update
       tags:
-      - prepare
+        - prepare
+        - skip_ansible_lint
 
-    - name: install kube packages
+    - name: Install kube packages
       ansible.builtin.package:
         name:
           - kubelet
@@ -157,103 +166,105 @@
           - kubectl
         state: present
       tags:
-      - prepare
+        - prepare
 
 - hosts: masters
-  gather_facts: yes
+  name: Bootstrap cluster
   tasks:
-    - name: install python pip
+    - name: Install python pip
       ansible.builtin.package:
         name:
           - python3-pip
         state: present
       tags:
-      - bootstrap
-    
-    - name: install kubernetes python library
+        - bootstrap
+
+    - name: Install kubernetes python library
       ansible.builtin.pip:
         name: kubernetes
       tags:
-      - bootstrap
+        - bootstrap
 
-    - name: copy kube-flannel.yaml
-      copy:
+    - name: Copy kube-flannel.yaml
+      ansible.builtin.copy:
         src: kube-flannel.yaml
         dest: /home/kube/kube-flannel.yaml
-        mode: 0777
+        mode: '0777'
       tags:
-      - bootstrap
-    
-    - name: initialize the cluster
-      shell: kubeadm init --pod-network-cidr=10.244.0.0/16 
+        - bootstrap
+
+    - name: Initialize the cluster
+      ansible.builtin.shell: kubeadm init --pod-network-cidr=10.244.0.0/16
       args:
         chdir: /home/kube
         creates: cluster_initialized.txt
       tags:
-      - bootstrap
+        - bootstrap
+        - skip_ansible_lint
 
-    - name: create .kube directory
-      file:
+    - name: Create .kube directory
+      ansible.builtin.file:
         path: /home/kube/.kube
         state: directory
-        mode: 0755
+        mode: '0755'
       tags:
-      - bootstrap
+        - bootstrap
 
-    - name: copies admin.conf to user's kube config
-      copy:
+    - name: Copies admin.conf to user's kube config
+      ansible.builtin.copy:
         src: /etc/kubernetes/admin.conf
         dest: /home/kube/.kube/config
-        remote_src: yes
+        remote_src: true
         owner: kube
+        mode: '0755'
       tags:
-      - bootstrap
+        - bootstrap
 
-    - name: install Container Network Interface
+    - name: Install Container Network Interface
       kubernetes.core.k8s:
         state: present
-        src: '/home/kube/kube-flannel.yaml' 
+        src: '/home/kube/kube-flannel.yaml'
         kubeconfig: /home/kube/.kube/config
       tags:
-      - bootstrap
-    
-    - name: Get the token for joining the worker nodes
-      shell: kubeadm token create  --print-join-command > /tmp/kubernetes_join_command.txt
-      tags:
-      - bootstrap
-      
-    - name: Copy join command to local file.
-      fetch:
-       src: /tmp/kubernetes_join_command.txt
-       dest: kubernetes_join_command.txt
-       mode: 0777
-      tags:
-      - bootstrap
-    
-- hosts: slaves
-  gather_facts: yes
+        - bootstrap
 
+    - name: Get the token for joining the worker nodes
+      ansible.builtin.shell: kubeadm token create  --print-join-command > /tmp/kubernetes_join_command.txt
+      tags:
+        - bootstrap
+        - skip_ansible_lint
+
+    - name: Copy join command to local file.
+      ansible.builtin.fetch:
+        src: /tmp/kubernetes_join_command.txt
+        dest: kubernetes_join_command.txt
+        mode: '0755'
+      tags:
+        - bootstrap
+
+- hosts: slaves
+  name: Join cluster
   tasks:
     - name: Copy join command from Ansiblehost to the worker nodes.
-      become: yes
-      copy:
-       src: files/kubernetes_join_command.txt
-       dest: /tmp
-       mode: 0777
+      become: true
+      ansible.builtin.copy:
+        src: files/kubernetes_join_command.txt
+        dest: /tmp
+        mode: '0755'
       tags:
-      - join
+        - join
 
     - name: Join the Worker nodes to the cluster.
-      become: yes
-      command: sh /tmp/kubernetes_join_command.txt
+      become: true
+      ansible.builtin.command: sh /tmp/kubernetes_join_command.txt
       args:
         chdir: /home/kube
         creates: cluster_joined.txt
       tags:
-       - join
+        - join
 
 - hosts: masters
-
+  name: Test installation
   tasks:
     - name: Create a k8s namespace
       kubernetes.core.k8s:
@@ -263,28 +274,27 @@
         state: present
         kubeconfig: /home/kube/.kube/config
       tags:
-      - health
+        - health
 
-    - name: assign role to worker
-      shell: |
+    - name: Assign role to worker
+      ansible.builtin.shell: |
         kubectl --kubeconfig /home/kube/.kube/config label node slave-01 node-role.kubernetes.io/worker=worker
         kubectl --kubeconfig /home/kube/.kube/config label node slave-02 node-role.kubernetes.io/worker=worker
       args:
         creates: role_assigend.txt
-    
-    - name: Copy kube-bench job.yaml
-      become: yes
-      copy:
-       src: files/job.yaml
-       dest: /home/kube
-       mode: 0755
-      tags:
-      - health
 
-    - name: apply kube-bench
+    - name: Copy kube-bench job.yaml
+      ansible.builtin.copy:
+        src: files/job.yaml
+        dest: /home/kube
+        mode: '0755'
+      tags:
+        - health
+
+    - name: Apply kube-bench
       kubernetes.core.k8s:
         state: present
-        src: '/home/kube/kube-flannel.yaml' 
+        src: '/home/kube/kube-flannel.yaml'
         kubeconfig: /home/kube/.kube/config
       tags:
-      - health
+        - health
