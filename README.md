@@ -106,7 +106,7 @@ L'installazione del cluster kubernetes invece non è stabile, sono stati utilizz
 
 Questo comporta che l'esito del playbook è randomico, cosi come non è possibile arrivare al deploy dell'applicazione.
 
-## Pipeline per il il lint
+## Pipeline per il lint
 Sono state predisposte le pipeline per il lint di terraform e di ansible
 
 ## Fonti utilizate
@@ -115,4 +115,5 @@ Sono state predisposte le pipeline per il lint di terraform e di ansible
 [Playbook da cui mi sono ispirato] (https://buildvirtual.net/deploy-a-kubernetes-cluster-using-ansible/)
 [Helm chart applicazione] (https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack)
 [Ansible lint] (https://github.com/ansible/ansible-lint-action)
+[Terraform lint] (https://github.com/marketplace/actions/terraform-lint)
 
