@@ -1,11 +1,3 @@
-data "google_client_openid_userinfo" "me" {
-}
-
-resource "google_os_login_ssh_public_key" "cache" {
-  user = data.google_client_openid_userinfo.me.email
-  key  = var.ssh_key
-}
-
 resource "google_compute_network" "network" {
   name                    = "challenge-network"
   auto_create_subnetworks = false
@@ -50,7 +42,7 @@ resource "google_compute_instance" "master" {
   desired_status = "RUNNING"
   zone           = var.zone
 
-  tags = ["allow-ssh-http", "allow-k8s-api"]
+  tags = ["allow-ssh-http", "allow-k8s-api", "default-allow-internal"]
 
   boot_disk {
     initialize_params {
@@ -78,7 +70,7 @@ resource "google_compute_instance" "slave" {
 
   machine_type = var.machine_type
 
-  tags = ["allow-ssh-http"]
+  tags = ["allow-ssh-http", "default-allow-internal"]
 
   boot_disk {
     initialize_params {
