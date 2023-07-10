@@ -41,6 +41,7 @@
         persistent: 'present'
       tags:
         - prepare
+        - skip_ansible_lint
 
     - name: Add the overlay module
       community.general.modprobe:
