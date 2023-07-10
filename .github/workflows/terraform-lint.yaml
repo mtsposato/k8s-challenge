@@ -10,5 +10,7 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@main
+    - name: Install ansible dependencies
+      run: ansible-galaxy collection install community.general &&  ansible-galaxy collection install kubernetes.core
     - name: Lint Terraform
       uses: actionshub/terraform-lint@main
