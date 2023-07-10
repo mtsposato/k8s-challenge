@@ -83,7 +83,7 @@ Per verificare lo stato del cluster i test eseguiti sono:
 - creare un namespace
 - lanciare un benchmark per verificare la sicurezza
 
-Il tool scelto è kube-bench, poiche come viene riportato [qui] (https://devopscube.com/kube-bench-guide/):
+Il tool scelto è kube-bench, poiche come viene riportato [qui](https://devopscube.com/kube-bench-guide/):
 
 ```
 Kube-bench can help with the following. 
@@ -94,7 +94,7 @@ Kube-bench can help with the following.
 
 ## Deploy applicazione
 
-L'applicazione da deployare è la [seguente] (https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack)
+L'applicazione da deployare è la [seguente](https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack)
 
 ## Risultati
 Il provisioning con terraform è riuscito perfettamente.
@@ -106,13 +106,19 @@ L'installazione del cluster kubernetes invece non è stabile, sono stati utilizz
 
 Questo comporta che l'esito del playbook è randomico, cosi come non è possibile arrivare al deploy dell'applicazione.
 
-## Pipeline per il il lint
+## Pipeline per il lint
 Sono state predisposte le pipeline per il lint di terraform e di ansible
 
 ## Fonti utilizate
-[Documentazione terraform gcp provider] (https://registry.terraform.io/providers/hashicorp/google/latest/docs)
-[Documentazione ansible] (https://docs.ansible.com/ansible/latest/)
-[Playbook da cui mi sono ispirato] (https://buildvirtual.net/deploy-a-kubernetes-cluster-using-ansible/)
-[Helm chart applicazione] (https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack)
-[Ansible lint] (https://github.com/ansible/ansible-lint-action)
+[Documentazione terraform gcp provider](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
+
+[Documentazione ansible](https://docs.ansible.com/ansible/latest/)
+
+[Playbook da cui mi sono ispirato](https://buildvirtual.net/deploy-a-kubernetes-cluster-using-ansible/)
+
+[Helm chart applicazione](https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack)
+
+[Ansible lint](https://github.com/ansible/ansible-lint-action)
+
+[Terraform lint](https://github.com/marketplace/actions/terraform-lint)
 
