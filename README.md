@@ -111,9 +111,14 @@ Sono state predisposte le pipeline per il lint di terraform e di ansible
 
 ## Fonti utilizate
 [Documentazione terraform gcp provider](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
+
 [Documentazione ansible](https://docs.ansible.com/ansible/latest/)
+
 [Playbook da cui mi sono ispirato](https://buildvirtual.net/deploy-a-kubernetes-cluster-using-ansible/)
+
 [Helm chart applicazione](https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack)
+
 [Ansible lint](https://github.com/ansible/ansible-lint-action)
+
 [Terraform lint](https://github.com/marketplace/actions/terraform-lint)
 
